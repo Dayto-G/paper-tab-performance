@@ -1,0 +1,33 @@
+name: Build and release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.2.1'
+      - run: gradle build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TabPerformance
+          path: build/libs/*.jar
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v1.0.0 >/dev/null 2>&1; then
+            echo 'Release already exists; leaving it unchanged.'
+          else
+            gh release create v1.0.0 build/libs/*.jar --target "$GITHUB_SHA" --title 'TabPerformance 1.0.0' --notes 'Displays one-minute TPS and average MSPT in the player list footer. Requires Paper 26.3 and Java 25.'
+          fi
